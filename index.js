@@ -48,6 +48,11 @@ async function run() {
       const result = await successStoryCollection.find().toArray();
       res.send(result);
     });
+    app.get("/stories/:id", async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      const result = await successStoryCollection.findOne(query);
+      res.send(result);
+    });
   } finally {
   }
 }
