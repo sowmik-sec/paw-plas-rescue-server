@@ -55,8 +55,17 @@ async function run() {
       res.send(result);
     });
     app.get("/pets", async (req, res) => {
-      const result = await petCollection.find().toArray();
-      res.send(result);
+      const category = req.query.category;
+      console.log(category);
+      if (category !== "undefined") {
+        const query = { pet_category: category };
+        console.log(query);
+        const result = await petCollection.find(query).toArray();
+        res.send(result);
+      } else {
+        const result = await petCollection.find().toArray();
+        res.send(result);
+      }
     });
   } finally {
   }
