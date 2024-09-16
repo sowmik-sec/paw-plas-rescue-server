@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 var cors = require("cors");
 require("dotenv").config();
@@ -22,6 +22,9 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("pawPalsRescue").collection("users");
+    const successStoryCollection = client
+      .db("pawPalsRescue")
+      .collection("successStories");
     const petCategoryCollection = client
       .db("pawPalsRescue")
       .collection("petCategories");
@@ -39,6 +42,10 @@ async function run() {
     });
     app.get("/pet-categories", async (req, res) => {
       const result = await petCategoryCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/success-stories", async (req, res) => {
+      const result = await successStoryCollection.find().toArray();
       res.send(result);
     });
   } finally {
