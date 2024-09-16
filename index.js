@@ -22,6 +22,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("pawPalsRescue").collection("users");
+    const petCollection = client.db("pawPalsRescue").collection("pets");
     const successStoryCollection = client
       .db("pawPalsRescue")
       .collection("successStories");
@@ -51,6 +52,10 @@ async function run() {
     app.get("/stories/:id", async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       const result = await successStoryCollection.findOne(query);
+      res.send(result);
+    });
+    app.get("/pets", async (req, res) => {
+      const result = await petCollection.find().toArray();
       res.send(result);
     });
   } finally {
