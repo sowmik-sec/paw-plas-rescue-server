@@ -57,7 +57,7 @@ async function run() {
     app.get("/pets", async (req, res) => {
       const category = req.query.category;
       console.log(category);
-      if (category !== "undefined") {
+      if (category !== "all") {
         const query = { pet_category: category };
         console.log(query);
         const result = await petCollection.find(query).toArray();
