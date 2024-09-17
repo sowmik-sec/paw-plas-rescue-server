@@ -56,16 +56,19 @@ async function run() {
     });
     app.get("/pets", async (req, res) => {
       const category = req.query.category;
-      console.log(category);
       if (category !== "all") {
         const query = { pet_category: category };
-        console.log(query);
         const result = await petCollection.find(query).toArray();
         res.send(result);
       } else {
         const result = await petCollection.find().toArray();
         res.send(result);
       }
+    });
+    app.get("/pets/details/:id", async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      const result = await petCollection.findOne(query);
+      res.send(result);
     });
   } finally {
   }
