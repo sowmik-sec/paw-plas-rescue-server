@@ -116,6 +116,7 @@ async function run() {
               pet_location: 1,
               posted_date: 1,
               pet_description: 1,
+              owner_info: 1,
               "requestDetails.status": 1,
               "requestDetails.request_date": 1,
               "requestDetails.requester_info.name": 1,
