@@ -61,15 +61,25 @@ async function run() {
     });
     // getting pet(s) related api
     app.get("/pets", async (req, res) => {
-      const category = req.query.category;
+      let { page = 1, limit = 10, category } = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
+      let query = {};
       if (category !== "all") {
-        const query = { pet_category: category };
-        const result = await petCollection.find(query).toArray();
-        res.send(result);
-      } else {
-        const result = await petCollection.find().toArray();
-        res.send(result);
+        query = { pet_category: category };
       }
+      const totalPets = await petCollection.countDocuments(query);
+      const pets = await petCollection
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+      res.status(200).send({
+        pets,
+        totalPages: Math.ceil(totalPets / limit),
+        currentPage: page,
+      });
     });
     app.get("/pets/details/:id", async (req, res) => {
       const petId = req.params.id;
