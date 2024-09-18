@@ -60,26 +60,120 @@ async function run() {
       res.send(result);
     });
     // getting pet(s) related api
+    // app.get("/pets", async (req, res) => {
+    //   let { page = 1, limit = 10, category } = req.query;
+    //   page = parseInt(page);
+    //   limit = parseInt(limit);
+    //   const skip = (page - 1) * limit;
+    //   let query = {};
+    //   if (category !== "all") {
+    //     query = { pet_category: category };
+    //   }
+    //   const totalPets = await petCollection.countDocuments(query);
+    //   const pets = await petCollection
+    //     .find(query)
+    //     .skip(skip)
+    //     .limit(limit)
+    //     .toArray();
+    //   res.status(200).send({
+    //     pets,
+    //     totalPages: Math.ceil(totalPets / limit),
+    //     currentPage: page,
+    //   });
+    // });
     app.get("/pets", async (req, res) => {
       let { page = 1, limit = 10, category } = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
       const skip = (page - 1) * limit;
-      let query = {};
+
+      let matchQuery = {}; // Initialize the query for category filtering
       if (category !== "all") {
-        query = { pet_category: category };
+        matchQuery = { pet_category: category };
       }
-      const totalPets = await petCollection.countDocuments(query);
       const pets = await petCollection
-        .find(query)
-        .skip(skip)
-        .limit(limit)
+        .aggregate([
+          {
+            $match: matchQuery,
+          },
+          {
+            $lookup: {
+              from: "petRequests",
+              let: { petId: { $toString: "$_id" } }, // convert pet _id to string
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$pet_id", "$$petId"] }, // Match with pet_id in petRequests
+                  },
+                },
+              ],
+              as: "requestDetails", // store the request details
+            },
+          },
+          {
+            $match: {
+              requestDetails: { $size: 0 }, // only include pets without requests
+            },
+          },
+          {
+            $skip: skip, // pagination: skip documents for current page
+          },
+          {
+            $limit: limit, // limit the number of documents returned
+          },
+          {
+            $project: {
+              _id: 1,
+              pet_name: 1,
+              pet_image: 1,
+              pet_category: 1,
+              pet_age: 1,
+              pet_location: 1,
+              posted_date: 1,
+              pet_description: 1,
+              owner_info: 1,
+            },
+          },
+        ])
         .toArray();
-      res.status(200).send({
-        pets,
-        totalPages: Math.ceil(totalPets / limit),
-        currentPage: page,
-      });
+
+      const totalPets = await petCollection
+        .aggregate([
+          {
+            $match: matchQuery,
+          },
+          {
+            $lookup: {
+              from: "petRequests",
+              let: { petId: { $toString: "$_id" } },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$pet_id", "$$petId"] },
+                  },
+                },
+              ],
+              as: "requestDetails",
+            },
+          },
+          {
+            $match: {
+              requestDetails: { $size: 0 }, // only count pets without requests
+            },
+          },
+          {
+            $count: "totalPets", // count the total number of pets
+          },
+        ])
+        .toArray();
+      const totalPetCount = totalPets[0]?.totalPets || 0;
+      res
+        .status(200)
+        .send({
+          pets,
+          totalPages: Math.ceil(totalPetCount / limit),
+          currentPage: page,
+        });
     });
     app.get("/pets/details/:id", async (req, res) => {
       const petId = req.params.id;
