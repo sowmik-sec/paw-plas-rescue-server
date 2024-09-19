@@ -1,7 +1,8 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
-var cors = require("cors");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -32,6 +33,16 @@ async function run() {
     const petCategoryCollection = client
       .db("pawPalsRescue")
       .collection("petCategories");
+
+    // jwt related api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "6h",
+      });
+      res.send({ token });
+    });
+
     // save user to db
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -167,13 +178,11 @@ async function run() {
         ])
         .toArray();
       const totalPetCount = totalPets[0]?.totalPets || 0;
-      res
-        .status(200)
-        .send({
-          pets,
-          totalPages: Math.ceil(totalPetCount / limit),
-          currentPage: page,
-        });
+      res.status(200).send({
+        pets,
+        totalPages: Math.ceil(totalPetCount / limit),
+        currentPage: page,
+      });
     });
     app.get("/pets/details/:id", async (req, res) => {
       const petId = req.params.id;
