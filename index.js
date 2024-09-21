@@ -4,10 +4,30 @@ const app = express();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors());
+
+// cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "pets",
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
+});
+
+const upload = multer({ storage: storage });
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xgh8h2c.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -69,6 +89,37 @@ async function run() {
         const result = await userCollection.insertOne(user);
         res.send(result);
       }
+    });
+    // upload image to claudinary
+    app.post("/add-pet", upload.single("pet_image"), async (req, res) => {
+      const {
+        pet_name,
+        pet_age,
+        pet_category,
+        pet_location,
+        pet_description,
+        posted_date,
+        owner_info,
+      } = req.body;
+
+      // Ensure that an image was uploaded
+      if (!req.file) {
+        return res.status(400).send({ message: "Image file is required" });
+      }
+
+      const imgUrl = req?.file?.path;
+      const pet = {
+        pet_image: imgUrl,
+        pet_name,
+        pet_category,
+        pet_age,
+        pet_location,
+        posted_date,
+        pet_description,
+        owner_info,
+      };
+      const result = await petCollection.insertOne(pet);
+      res.status(200).send(result);
     });
     // pet categories
     app.get("/pet-categories", async (req, res) => {
