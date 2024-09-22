@@ -116,11 +116,75 @@ async function run() {
         pet_location,
         posted_date,
         pet_description,
-        owner_info,
+        owner_info: JSON.parse(owner_info),
       };
       const result = await petCollection.insertOne(pet);
       res.status(200).send(result);
     });
+
+    // get my pets
+    app.get("/my-pets", async (req, res) => {
+      const email = req.query.email;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const myPets = await petCollection
+        .aggregate([
+          // Match pets added by the owner (email)
+          {
+            $match: {
+              "owner_info.email": email,
+            },
+          },
+          // Perform lookup to get request details from petRequests collection
+          {
+            $lookup: {
+              from: "petRequests", // The collection to join with
+              let: { petId: "$_id" }, // petId is from the pets collection
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: [{ $toString: "$pet_id" }, { $toString: "$$petId" }], // Match pet_id in requests to _id in pets, both converted to strings
+                    },
+                  },
+                },
+              ],
+              as: "requestDetails", // Output array field
+            },
+          },
+          // Optionally unwind the requestDetails to get each request as an individual document
+          {
+            $unwind: {
+              path: "$requestDetails", // Unwind the array
+              preserveNullAndEmptyArrays: true, // Keep the pets even if no requests are found
+            },
+          },
+          // Project the desired fields
+          {
+            $project: {
+              _id: 1,
+              pet_name: 1,
+              pet_image: 1,
+              pet_category: 1,
+              pet_age: 1,
+              pet_location: 1,
+              posted_date: 1,
+              pet_description: 1,
+              "owner_info.name": 1,
+              "owner_info.email": 1,
+              "requestDetails.status": 1, // Include the request status if available
+              "requestDetails.request_date": 1, // Include request date if available
+            },
+          },
+        ])
+        .toArray();
+
+      res.status(200).json(myPets);
+    });
+
     // pet categories
     app.get("/pet-categories", async (req, res) => {
       const result = await petCategoryCollection.find().toArray();
