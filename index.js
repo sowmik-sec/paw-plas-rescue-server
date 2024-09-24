@@ -122,6 +122,67 @@ async function run() {
       res.status(200).send(result);
     });
 
+    // update a pet
+    app.put("/update-pet/:id", upload.single("pet_image"), async (req, res) => {
+      const { id } = req.params;
+      const {
+        pet_name,
+        pet_age,
+        pet_category,
+        pet_location,
+        pet_description,
+        posted_date,
+        owner_info,
+      } = req.body;
+
+      // Find the existing pet in the collection
+      const existingPet = await petCollection.findOne({
+        _id: new ObjectId(id),
+      });
+      if (!existingPet) {
+        return res.status(404).send({ message: "Pet not found" });
+      }
+
+      let imgUrl = existingPet.pet_image; // Use the existing image by default
+
+      // If a new image is uploaded, upload it to Cloudinary
+      if (req.file) {
+        try {
+          // Upload new image to Cloudinary
+          const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+            folder: "pets",
+          });
+          imgUrl = uploadResult.secure_url; // Set the new image URL
+        } catch (error) {
+          return res.status(500).send({ message: "Error uploading image" });
+        }
+      }
+
+      // Prepare the updated pet object
+      const updatedPet = {
+        pet_image: imgUrl,
+        pet_name,
+        pet_category,
+        pet_age,
+        pet_location,
+        posted_date,
+        pet_description,
+        owner_info: JSON.parse(owner_info),
+      };
+
+      // Update the pet in the collection
+      const result = await petCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedPet }
+      );
+
+      if (result.modifiedCount > 0) {
+        res.status(200).send(result);
+      } else {
+        res.status(500).send({ message: "Failed to update pet" });
+      }
+    });
+
     // get my pets
     app.get("/my-pets", async (req, res) => {
       const email = req.query.email;
