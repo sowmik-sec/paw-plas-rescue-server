@@ -198,6 +198,13 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/delete-pet/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await petCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // pet categories
     app.get("/pet-categories", async (req, res) => {
       const result = await petCategoryCollection.find().toArray();
