@@ -185,6 +185,19 @@ async function run() {
       res.status(200).json(myPets);
     });
 
+    // make pet adopted
+    app.patch("/make-adopted/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { pet_id: id };
+      const updateDoc = {
+        $set: {
+          status: "adopted",
+        },
+      };
+      const result = await petRequestCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // pet categories
     app.get("/pet-categories", async (req, res) => {
       const result = await petCategoryCollection.find().toArray();
