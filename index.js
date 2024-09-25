@@ -234,6 +234,12 @@ async function run() {
       }
     );
 
+    // get donation campaigns
+    app.get("/donation-campaigns", async (req, res) => {
+      const result = await donationCampaignCollection.find().toArray();
+      res.send(result);
+    });
+
     // get my pets
     app.get("/my-pets", async (req, res) => {
       const email = req.query.email;
