@@ -43,6 +43,9 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("pawPalsRescue").collection("users");
+    const donationCampaignCollection = client
+      .db("pawPalsRescue")
+      .collection("donationCampaigns");
     const petCollection = client.db("pawPalsRescue").collection("pets");
     const petRequestCollection = client
       .db("pawPalsRescue")
@@ -182,6 +185,54 @@ async function run() {
         res.status(500).send({ message: "Failed to update pet" });
       }
     });
+
+    // create donation campaign
+    app.post(
+      "/create-donation-campaign",
+      upload.single("pet_image"),
+      async (req, res) => {
+        const {
+          pet_name,
+          max_donation,
+          last_date,
+          short_description,
+          long_description,
+          donation_created_at,
+          creator_info,
+        } = req.body;
+
+        try {
+          let petImageUrl = null;
+
+          // If a file is uploaded, upload it to Cloudinary and get the URL
+          if (req.file) {
+            const cloudinaryUploadResponse = await cloudinary.uploader.upload(
+              req.file.path
+            );
+            petImageUrl = cloudinaryUploadResponse.secure_url;
+          }
+
+          const newCampaign = {
+            pet_name,
+            max_donation,
+            last_date,
+            short_description,
+            long_description,
+            pet_image: petImageUrl,
+            donation_created_at,
+            creator_info: JSON.parse(creator_info),
+          };
+
+          const result = await donationCampaignCollection.insertOne(
+            newCampaign
+          );
+          res.status(200).send({ insertedId: result.insertedId });
+        } catch (error) {
+          console.error("Error creating donation campaign:", error);
+          res.status(500).send({ message: "Error creating campaign" });
+        }
+      }
+    );
 
     // get my pets
     app.get("/my-pets", async (req, res) => {
