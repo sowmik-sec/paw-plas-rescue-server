@@ -408,6 +408,55 @@ async function run() {
       res.send(result[0]);
     });
 
+    // get donation campaign of a specific user
+    app.get("/my-donation-campaigns", async (req, res) => {
+      const query = { "creator_info.email": req.query.email };
+      const result = await donationCampaignCollection
+        .aggregate([
+          {
+            $match: query,
+          },
+          {
+            $lookup: {
+              from: "donations",
+              let: { campaignId: { $toString: "$_id" } },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$pet_id", "$$campaignId"] },
+                  },
+                },
+              ],
+              as: "donations",
+            },
+          },
+          {
+            $addFields: {
+              totalAmount: { $sum: "$donations.donation" },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              pet_name: 1,
+              max_donation: 1,
+              last_date: 1,
+              pet_image: 1,
+              donation_created_at: 1,
+              creator_info: 1,
+              totalAmount: 1,
+            },
+          },
+        ])
+        .toArray();
+
+      if (result.length === 0) {
+        return res.status(404).send({ message: "Donation campaign not found" });
+      }
+
+      res.send(result);
+    });
+
     // get my pets
     app.get("/my-pets", async (req, res) => {
       const email = req.query.email;
