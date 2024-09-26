@@ -298,6 +298,7 @@ async function run() {
               _id: 1,
               pet_name: 1,
               max_donation: 1,
+              short_description: 1,
               last_date: 1,
               pet_image: 1,
               donation_created_at: 1,
