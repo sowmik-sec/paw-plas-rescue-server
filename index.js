@@ -314,6 +314,18 @@ async function run() {
       });
     });
 
+    // get total donation amount of a single campaign
+    app.get("/donations/total/:petId", async (req, res) => {
+      const { petId } = req.params;
+      const totalDonations = await donationCollection
+        .aggregate([
+          { $match: { pet_id: petId } },
+          { $group: { _id: null, total: { $sum: "$donation" } } },
+        ])
+        .toArray();
+      res.send({ totalDonations: totalDonations[0]?.total || 0 });
+    });
+
     // get single donation campaign
     app.get("/donation-campaign/:id", async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
