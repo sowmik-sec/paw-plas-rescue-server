@@ -239,25 +239,81 @@ async function run() {
     );
 
     // get donation campaigns
+    // app.get("/donation-campaigns", async (req, res) => {
+    //   let { page = 1, limit = 10 } = req.query;
+    //   console.log(req.query);
+    //   page = parseInt(page);
+    //   limit = parseInt(limit);
+    //   const skip = (page - 1) * limit;
+    //   const totalCampaigns = await donationCampaignCollection.countDocuments();
+
+    //   const campaigns = await donationCampaignCollection
+    //     .find()
+    //     .skip(skip)
+    //     .limit(limit)
+    //     .toArray();
+    //   res.status(200).send({
+    //     campaigns,
+    //     totalPages: Math.ceil(totalCampaigns / limit),
+    //     currentPage: page,
+    //   });
+    // });
+
+    // get donation campaigns
     app.get("/donation-campaigns", async (req, res) => {
       let { page = 1, limit = 10 } = req.query;
-      console.log(req.query);
       page = parseInt(page);
       limit = parseInt(limit);
       const skip = (page - 1) * limit;
       const totalCampaigns = await donationCampaignCollection.countDocuments();
-
       const campaigns = await donationCampaignCollection
-        .find()
-        .skip(skip)
-        .limit(limit)
+        .aggregate([
+          {
+            $lookup: {
+              from: "donations",
+              let: { campaignId: { $toString: "$_id" } },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$pet_id", "$$campaignId"] },
+                  },
+                },
+              ],
+              as: "donations",
+            },
+          },
+          {
+            $addFields: {
+              totalAmount: { $sum: "$donations.donation" },
+            },
+          },
+          {
+            $skip: skip,
+          },
+          {
+            $limit: limit,
+          },
+          {
+            $project: {
+              _id: 1,
+              pet_name: 1,
+              max_donation: 1,
+              last_date: 1,
+              pet_image: 1,
+              donation_created_at: 1,
+              totalAmount: 1,
+            },
+          },
+        ])
         .toArray();
+
       res.status(200).send({
         campaigns,
         totalPages: Math.ceil(totalCampaigns / limit),
         currentPage: page,
       });
     });
+
     // get single donation campaign
     app.get("/donation-campaign/:id", async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
