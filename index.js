@@ -236,8 +236,23 @@ async function run() {
 
     // get donation campaigns
     app.get("/donation-campaigns", async (req, res) => {
-      const result = await donationCampaignCollection.find().toArray();
-      res.send(result);
+      let { page = 1, limit = 10 } = req.query;
+      console.log(req.query);
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
+      const totalCampaigns = await donationCampaignCollection.countDocuments();
+
+      const campaigns = await donationCampaignCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+      res.status(200).send({
+        campaigns,
+        totalPages: Math.ceil(totalCampaigns / limit),
+        currentPage: page,
+      });
     });
     // get single donation campaign
     app.get("/donation-campaign/:id", async (req, res) => {
