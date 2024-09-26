@@ -352,13 +352,20 @@ async function run() {
                     $expr: { $eq: ["$pet_id", "$$campaignId"] },
                   },
                 },
+                {
+                  $group: {
+                    _id: "$email",
+                    totalDonation: { $sum: "$donation" },
+                    donations: { $push: "$$ROOT" },
+                  },
+                },
               ],
               as: "donations",
             },
           },
           {
             $addFields: {
-              totalAmount: { $sum: "$donations.donation" },
+              totalAmount: { $sum: "$donations.totalDonation" },
             },
           },
           {
@@ -373,6 +380,7 @@ async function run() {
               donation_created_at: 1,
               creator_info: 1,
               totalAmount: 1,
+              donations: 1,
             },
           },
         ])
