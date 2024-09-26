@@ -44,7 +44,9 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("pawPalsRescue").collection("users");
-    const paymentCollection = client.db("pawPalsRescue").collection("payments");
+    const donationCollection = client
+      .db("pawPalsRescue")
+      .collection("donations");
     const donationCampaignCollection = client
       .db("pawPalsRescue")
       .collection("donationCampaigns");
@@ -542,7 +544,7 @@ async function run() {
       res.send(result);
     });
 
-    // payment related apis
+    // donation related apis
     app.post("/create-donation-intent", async (req, res) => {
       const { donation } = req.body;
       const amount = parseInt(donation) * 100;
@@ -554,6 +556,12 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
+    });
+
+    app.post("/donations", async (req, res) => {
+      const donation = req.body;
+      const donationResult = await donationCollection.insertOne(donation);
+      res.send({ donationResult });
     });
   } finally {
   }
