@@ -7,6 +7,7 @@ require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
@@ -43,6 +44,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("pawPalsRescue").collection("users");
+    const paymentCollection = client.db("pawPalsRescue").collection("payments");
     const donationCampaignCollection = client
       .db("pawPalsRescue")
       .collection("donationCampaigns");
@@ -538,6 +540,20 @@ async function run() {
       const info = req.body;
       const result = await petRequestCollection.insertOne(info);
       res.send(result);
+    });
+
+    // payment related apis
+    app.post("/create-donation-intent", async (req, res) => {
+      const { donation } = req.body;
+      const amount = parseInt(donation) * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
   } finally {
   }
