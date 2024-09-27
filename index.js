@@ -349,6 +349,46 @@ async function run() {
       });
     });
 
+    // get all donation campaigns
+    app.get("/all-donation-campaigns", async (req, res) => {
+      const campaigns = await donationCampaignCollection
+        .aggregate([
+          {
+            $lookup: {
+              from: "donations",
+              let: { campaignId: { $toString: "$_id" } },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$pet_id", "$$campaignId"] },
+                  },
+                },
+              ],
+              as: "donations",
+            },
+          },
+          {
+            $addFields: {
+              totalAmount: { $sum: "$donations.donation" },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              pet_name: 1,
+              max_donation: 1,
+              short_description: 1,
+              last_date: 1,
+              pet_image: 1,
+              donation_created_at: 1,
+              totalAmount: 1,
+            },
+          },
+        ])
+        .toArray();
+      res.send(campaigns);
+    });
+
     // get total donation amount of a single campaign
     app.get("/donations/total/:petId", async (req, res) => {
       const { petId } = req.params;
