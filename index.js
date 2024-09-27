@@ -100,6 +100,12 @@ async function run() {
       res.send({ admin });
     });
 
+    // get all users
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.status(200).send(result);
+    });
+
     // save user to db
     app.post("/users", async (req, res) => {
       const user = req.body;
