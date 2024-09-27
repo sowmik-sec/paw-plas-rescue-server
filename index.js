@@ -389,6 +389,77 @@ async function run() {
       res.send(campaigns);
     });
 
+    // get all donations
+    app.get("/all-donations", async (req, res) => {
+      try {
+        const result = await donationCampaignCollection
+          .aggregate([
+            {
+              // Convert the ObjectId _id from donationCampaignCollection to a string
+              $addFields: {
+                campaignIdStr: { $toString: "$_id" },
+              },
+            },
+            {
+              $lookup: {
+                from: "donations", // The donations collection
+                localField: "campaignIdStr", // Field in donationCampaigns collection (as string)
+                foreignField: "pet_id", // Field in donations collection (as string)
+                pipeline: [
+                  {
+                    $group: {
+                      _id: "$pet_id", // Group by pet_id (campaign ID)
+                      totalDonations: { $sum: "$donation" }, // Sum of all donations for this campaign
+                      donors: { $addToSet: "$email" }, // Get unique donors for this campaign
+                      donationsDetail: {
+                        $push: {
+                          email: "$email", // Donor email
+                          donation: "$donation", // Donation amount
+                        },
+                      },
+                    },
+                  },
+                ],
+                as: "donationDetails", // Output field for joined data
+              },
+            },
+            {
+              $addFields: {
+                totalDonations: {
+                  $arrayElemAt: ["$donationDetails.totalDonations", 0], // Extract total donations
+                },
+                donors: {
+                  $arrayElemAt: ["$donationDetails.donors", 0], // Extract donor list
+                },
+                donationsDetail: {
+                  $arrayElemAt: ["$donationDetails.donationsDetail", 0], // Extract donation details
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                pet_name: 1,
+                max_donation: 1,
+                short_description: 1,
+                long_description: 1,
+                last_date: 1,
+                pet_image: 1,
+                totalDonations: 1, // Project total donations
+                donors: 1, // Project donors
+                donationsDetail: 1, // Project detailed donations
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching donation data:", error);
+        res.status(500).send("Server error while calculating donations.");
+      }
+    });
+
     // get total donation amount of a single campaign
     app.get("/donations/total/:petId", async (req, res) => {
       const { petId } = req.params;
