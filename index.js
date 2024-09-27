@@ -520,6 +520,47 @@ async function run() {
       res.status(200).json(myPets);
     });
 
+    // get adoption requests
+    app.get("/adoption-requests", async (req, res) => {
+      const result = await petCollection
+        .aggregate([
+          {
+            $lookup: {
+              from: "petRequests",
+              let: { petId: { $toString: "$_id" } }, // Convert pets._id to string
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$pet_id", "$$petId"] }, // Match on pet_id from petRequests (string)
+                    status: { $in: ["pending", "adopted"] }, // Match if status is 'pending' or 'adopted'
+                  },
+                },
+              ],
+              as: "petRequests",
+            },
+          },
+          {
+            $match: {
+              "petRequests.status": { $in: ["pending", "adopted"] }, // Match pets with 'pending' or 'adopted' status requests
+            },
+          },
+          {
+            $project: {
+              _id: 1, // Always include the _id field
+              pet_name: 1, // Include name from petsCollection
+              pet_age: 1, // Include age from petsCollection
+              pet_category: 1, // Include category from petsCollection
+              pet_location: 1, // Include location from petsCollection
+              pet_image: 1, // Include image from petsCollection
+              "petRequests.status": 1, // Include the status field from petRequests
+            },
+          },
+        ])
+        .toArray();
+
+      res.send(result);
+    });
+
     // make pet adopted
     app.patch("/make-adopted/:id", async (req, res) => {
       const id = req.params.id;
