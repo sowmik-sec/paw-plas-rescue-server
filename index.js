@@ -76,6 +76,17 @@ async function run() {
       });
     };
 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     // jwt related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -101,23 +112,28 @@ async function run() {
     });
 
     // get all users
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.status(200).send(result);
     });
 
     // make a user as admin
-    app.patch("/users/admin/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          role: "admin",
-        },
-      };
-      const result = await userCollection.updateOne(filter, updatedDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/users/admin/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            role: "admin",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      }
+    );
 
     // save user to db
     app.post("/users", async (req, res) => {
@@ -132,101 +148,115 @@ async function run() {
       }
     });
     // upload image to claudinary
-    app.post("/add-pet", upload.single("pet_image"), async (req, res) => {
-      const {
-        pet_name,
-        pet_age,
-        pet_category,
-        pet_location,
-        pet_description,
-        posted_date,
-        owner_info,
-      } = req.body;
+    app.post(
+      "/add-pet",
+      verifyToken,
+      upload.single("pet_image"),
+      async (req, res) => {
+        const {
+          pet_name,
+          pet_age,
+          pet_category,
+          pet_location,
+          pet_description,
+          posted_date,
+          owner_info,
+        } = req.body;
 
-      // Ensure that an image was uploaded
-      if (!req.file) {
-        return res.status(400).send({ message: "Image file is required" });
+        // Ensure that an image was uploaded
+        if (!req.file) {
+          return res.status(400).send({ message: "Image file is required" });
+        }
+
+        const imgUrl = req?.file?.path;
+        const pet = {
+          pet_image: imgUrl,
+          pet_name,
+          pet_category,
+          pet_age,
+          pet_location,
+          posted_date,
+          pet_description,
+          owner_info: JSON.parse(owner_info),
+        };
+        const result = await petCollection.insertOne(pet);
+        res.status(200).send(result);
       }
-
-      const imgUrl = req?.file?.path;
-      const pet = {
-        pet_image: imgUrl,
-        pet_name,
-        pet_category,
-        pet_age,
-        pet_location,
-        posted_date,
-        pet_description,
-        owner_info: JSON.parse(owner_info),
-      };
-      const result = await petCollection.insertOne(pet);
-      res.status(200).send(result);
-    });
+    );
 
     // update a pet
-    app.put("/update-pet/:id", upload.single("pet_image"), async (req, res) => {
-      const { id } = req.params;
-      const {
-        pet_name,
-        pet_age,
-        pet_category,
-        pet_location,
-        pet_description,
-        posted_date,
-        owner_info,
-      } = req.body;
+    app.put(
+      "/update-pet/:id",
+      verifyToken,
+      upload.single("pet_image"),
+      async (req, res) => {
+        const { id } = req.params;
+        const {
+          pet_name,
+          pet_age,
+          pet_category,
+          pet_location,
+          pet_description,
+          posted_date,
+          owner_info,
+        } = req.body;
 
-      // Find the existing pet in the collection
-      const existingPet = await petCollection.findOne({
-        _id: new ObjectId(id),
-      });
-      if (!existingPet) {
-        return res.status(404).send({ message: "Pet not found" });
-      }
+        // Find the existing pet in the collection
+        const existingPet = await petCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!existingPet) {
+          return res.status(404).send({ message: "Pet not found" });
+        }
 
-      let imgUrl = existingPet.pet_image; // Use the existing image by default
+        let imgUrl = existingPet.pet_image; // Use the existing image by default
 
-      // If a new image is uploaded, upload it to Cloudinary
-      if (req.file) {
-        try {
-          // Upload new image to Cloudinary
-          const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-            folder: "pets",
-          });
-          imgUrl = uploadResult.secure_url; // Set the new image URL
-        } catch (error) {
-          return res.status(500).send({ message: "Error uploading image" });
+        // If a new image is uploaded, upload it to Cloudinary
+        if (req.file) {
+          try {
+            // Upload new image to Cloudinary
+            const uploadResult = await cloudinary.uploader.upload(
+              req.file.path,
+              {
+                folder: "pets",
+              }
+            );
+            imgUrl = uploadResult.secure_url; // Set the new image URL
+          } catch (error) {
+            return res.status(500).send({ message: "Error uploading image" });
+          }
+        }
+
+        // Prepare the updated pet object
+        const updatedPet = {
+          pet_image: imgUrl,
+          pet_name,
+          pet_category,
+          pet_age,
+          pet_location,
+          posted_date,
+          pet_description,
+          owner_info: JSON.parse(owner_info),
+        };
+
+        // Update the pet in the collection
+        const result = await petCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedPet }
+        );
+
+        if (result.modifiedCount > 0) {
+          res.status(200).send(result);
+        } else {
+          res.status(500).send({ message: "Failed to update pet" });
         }
       }
-
-      // Prepare the updated pet object
-      const updatedPet = {
-        pet_image: imgUrl,
-        pet_name,
-        pet_category,
-        pet_age,
-        pet_location,
-        posted_date,
-        pet_description,
-        owner_info: JSON.parse(owner_info),
-      };
-
-      // Update the pet in the collection
-      const result = await petCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: updatedPet }
-      );
-
-      if (result.modifiedCount > 0) {
-        res.status(200).send(result);
-      } else {
-        res.status(500).send({ message: "Failed to update pet" });
-      }
-    });
+    );
 
     // create donation campaign
     app.post(
       "/create-donation-campaign",
+      verifyToken,
       upload.single("pet_image"),
       async (req, res) => {
         const {
@@ -294,7 +324,7 @@ async function run() {
     // });
 
     // get donation campaigns
-    app.get("/donation-campaigns", async (req, res) => {
+    app.get("/donation-campaigns", verifyToken, async (req, res) => {
       let { page = 1, limit = 10 } = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
@@ -350,47 +380,52 @@ async function run() {
     });
 
     // get all donation campaigns
-    app.get("/all-donation-campaigns", async (req, res) => {
-      const campaigns = await donationCampaignCollection
-        .aggregate([
-          {
-            $lookup: {
-              from: "donations",
-              let: { campaignId: { $toString: "$_id" } },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $eq: ["$pet_id", "$$campaignId"] },
+    app.get(
+      "/all-donation-campaigns",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const campaigns = await donationCampaignCollection
+          .aggregate([
+            {
+              $lookup: {
+                from: "donations",
+                let: { campaignId: { $toString: "$_id" } },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ["$pet_id", "$$campaignId"] },
+                    },
                   },
-                },
-              ],
-              as: "donations",
+                ],
+                as: "donations",
+              },
             },
-          },
-          {
-            $addFields: {
-              totalAmount: { $sum: "$donations.donation" },
+            {
+              $addFields: {
+                totalAmount: { $sum: "$donations.donation" },
+              },
             },
-          },
-          {
-            $project: {
-              _id: 1,
-              pet_name: 1,
-              max_donation: 1,
-              short_description: 1,
-              last_date: 1,
-              pet_image: 1,
-              donation_created_at: 1,
-              totalAmount: 1,
+            {
+              $project: {
+                _id: 1,
+                pet_name: 1,
+                max_donation: 1,
+                short_description: 1,
+                last_date: 1,
+                pet_image: 1,
+                donation_created_at: 1,
+                totalAmount: 1,
+              },
             },
-          },
-        ])
-        .toArray();
-      res.send(campaigns);
-    });
+          ])
+          .toArray();
+        res.send(campaigns);
+      }
+    );
 
     // get all donations
-    app.get("/all-donations", async (req, res) => {
+    app.get("/all-donations", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const result = await donationCampaignCollection
           .aggregate([
@@ -461,7 +496,7 @@ async function run() {
     });
 
     // get total donation amount of a single campaign
-    app.get("/donations/total/:petId", async (req, res) => {
+    app.get("/donations/total/:petId", verifyToken, async (req, res) => {
       const { petId } = req.params;
       const totalDonations = await donationCollection
         .aggregate([
@@ -480,7 +515,7 @@ async function run() {
     // });
 
     // get single donation campaign
-    app.get("/donation-campaign/:id", async (req, res) => {
+    app.get("/donation-campaign/:id", verifyToken, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       const result = await donationCampaignCollection
         .aggregate([
@@ -539,7 +574,7 @@ async function run() {
     });
 
     // get donation campaign of a specific user
-    app.get("/my-donation-campaigns", async (req, res) => {
+    app.get("/my-donation-campaigns", verifyToken, async (req, res) => {
       const query = { "creator_info.email": req.query.email };
       const result = await donationCampaignCollection
         .aggregate([
@@ -584,7 +619,7 @@ async function run() {
     });
 
     // get my donations
-    app.get("/my-donations", async (req, res) => {
+    app.get("/my-donations", verifyToken, async (req, res) => {
       const userEmail = req.query.email; // Pass user's email in the query parameters
       if (!userEmail) {
         return res.status(400).send("User email is required");
@@ -648,7 +683,7 @@ async function run() {
     });
 
     // get my pets
-    app.get("/my-pets", async (req, res) => {
+    app.get("/my-pets", verifyToken, async (req, res) => {
       const email = req.query.email;
 
       if (!email) {
@@ -711,7 +746,7 @@ async function run() {
     });
 
     // get adoption requests
-    app.get("/adoption-requests", async (req, res) => {
+    app.get("/adoption-requests", verifyToken, async (req, res) => {
       const result = await petCollection
         .aggregate([
           {
@@ -752,7 +787,7 @@ async function run() {
     });
 
     // make pet adopted
-    app.patch("/make-adopted/:id", async (req, res) => {
+    app.patch("/make-adopted/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const filter = { pet_id: id };
       const updateDoc = {
@@ -764,7 +799,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/delete-pet/:id", async (req, res) => {
+    app.delete("/delete-pet/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await petCollection.deleteOne(query);
@@ -808,7 +843,7 @@ async function run() {
     //     currentPage: page,
     //   });
     // });
-    app.get("/pets", async (req, res) => {
+    app.get("/pets", verifyToken, async (req, res) => {
       let { page = 1, limit = 10, category } = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
@@ -900,7 +935,7 @@ async function run() {
         currentPage: page,
       });
     });
-    app.get("/pets/details/:id", async (req, res) => {
+    app.get("/pets/details/:id", verifyToken, async (req, res) => {
       const petId = req.params.id;
       const petDetails = await petCollection
         .aggregate([
@@ -961,14 +996,14 @@ async function run() {
       res.status(200).send(petDetails[0]);
     });
     // adoption related api
-    app.post("/pet-request", async (req, res) => {
+    app.post("/pet-request", verifyToken, async (req, res) => {
       const info = req.body;
       const result = await petRequestCollection.insertOne(info);
       res.send(result);
     });
 
     // donation related apis
-    app.post("/create-donation-intent", async (req, res) => {
+    app.post("/create-donation-intent", verifyToken, async (req, res) => {
       const { donation } = req.body;
       const amount = parseInt(donation) * 100;
       const paymentIntent = await stripe.paymentIntents.create({
@@ -981,7 +1016,7 @@ async function run() {
       });
     });
 
-    app.post("/donations", async (req, res) => {
+    app.post("/donations", verifyToken, async (req, res) => {
       const donation = req.body;
       const donationResult = await donationCollection.insertOne(donation);
       res.send({ donationResult });
