@@ -580,10 +580,6 @@ async function run() {
         ])
         .toArray();
 
-      if (result.length === 0) {
-        return res.status(404).send({ message: "Donation campaign not found" });
-      }
-
       res.send(result);
     });
 
