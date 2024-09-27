@@ -583,6 +583,70 @@ async function run() {
       res.send(result);
     });
 
+    // get my donations
+    app.get("/my-donations", async (req, res) => {
+      const userEmail = req.query.email; // Pass user's email in the query parameters
+      if (!userEmail) {
+        return res.status(400).send("User email is required");
+      }
+
+      try {
+        const result = await donationCampaignCollection
+          .aggregate([
+            {
+              // Convert the ObjectId _id from donationCampaignCollection to a string
+              $addFields: {
+                campaignIdStr: { $toString: "$_id" },
+              },
+            },
+            {
+              $lookup: {
+                from: "donations", // The donations collection
+                localField: "campaignIdStr", // Field in donationCampaigns collection (as string)
+                foreignField: "pet_id", // Field in donations collection (as string)
+                as: "userDonations",
+              },
+            },
+            {
+              $unwind: "$userDonations",
+            },
+            {
+              $match: {
+                "userDonations.email": userEmail, // Match donations for the specific user
+              },
+            },
+            {
+              $group: {
+                _id: "$_id", // Group by donation campaign _id
+                pet_name: { $first: "$pet_name" },
+                totalUserDonation: { $sum: "$userDonations.donation" }, // Sum of donations made by the user
+                donationDetails: {
+                  $push: {
+                    email: "$userDonations.email",
+                    donation: "$userDonations.donation",
+                    donatedAt: "$userDonations.date", // If you have a timestamp field
+                  },
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                pet_name: 1,
+                totalUserDonation: 1,
+                donationDetails: 1, // Project only the necessary fields
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching user's donation data:", error);
+        res.status(500).send("Server error while retrieving donations.");
+      }
+    });
+
     // get my pets
     app.get("/my-pets", async (req, res) => {
       const email = req.query.email;
