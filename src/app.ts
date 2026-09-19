@@ -24,6 +24,10 @@ import {
   petsRouter as defaultPetsRouter,
   legacyPetsRouter as defaultLegacyPetsRouter,
 } from "./features/pets/pets.routes";
+import {
+  adoptionsRouter as defaultAdoptionsRouter,
+  legacyAdoptionsRouter as defaultLegacyAdoptionsRouter,
+} from "./features/adoptions/adoptions.routes";
 
 export interface AppOptions {
   authRouter?: express.Router;
@@ -32,6 +36,8 @@ export interface AppOptions {
   petCategoriesRouter?: express.Router;
   petsRouter?: express.Router;
   legacyPetsRouter?: express.Router;
+  adoptionsRouter?: express.Router;
+  legacyAdoptionsRouter?: express.Router;
 }
 
 export function createApp(options?: AppOptions): Express {
@@ -62,6 +68,10 @@ export function createApp(options?: AppOptions): Express {
   const petsRouter = options?.petsRouter || defaultPetsRouter;
   const legacyPetsRouter =
     options?.legacyPetsRouter || defaultLegacyPetsRouter;
+  const adoptionsRouter =
+    options?.adoptionsRouter || defaultAdoptionsRouter;
+  const legacyAdoptionsRouter =
+    options?.legacyAdoptionsRouter || defaultLegacyAdoptionsRouter;
 
   app.use("/api/v1/auth", authRouter);
   app.use("/jwt", authRouter);
@@ -78,7 +88,10 @@ export function createApp(options?: AppOptions): Express {
   app.use("/pet-categories", petCategoriesRouter);
 
   app.use("/api/v1/pets", petsRouter);
+  app.use("/api/v1/adoptions", adoptionsRouter);
+  app.use("/api/v1/adoption-requests", adoptionsRouter);
   app.use("/", legacyPetsRouter);
+  app.use("/", legacyAdoptionsRouter);
 
   // Catch-all 404 for unhandled routes
   app.use((req: Request, _res: Response, next: NextFunction) => {

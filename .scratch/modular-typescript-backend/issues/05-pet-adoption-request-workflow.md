@@ -4,12 +4,12 @@
 
 **Blocked by:** 04: Pet Catalog, Listing Management, and Cloudinary Seam
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Authenticated adopters can submit an adoption request with address and contact information for an available pet
-- [ ] Pet owners and administrators can retrieve all pending and approved adoption requests
-- [ ] Approving an adoption request transitions its status to adopted and marks the pet as adopted
-- [ ] Adopted pets are automatically excluded from the public pet search catalog
-- [ ] Double-adoption validation prevents submitting new adoption requests for already adopted pets
-- [ ] Frontend adoption modal and adoption requests dashboard view are updated to consume the new REST endpoints
-- [ ] Automated tests verify adoption status transitions and validation preventing duplicate adoption
+- [x] Authenticated adopters can submit an adoption request with address and contact information for an available pet
+- [x] Pet owners and administrators can retrieve all pending and approved adoption requests
+- [x] Approving an adoption request transitions its status to adopted and marks the pet as adopted
+- [x] Adopted pets are automatically excluded from the public pet search catalog
+- [x] Double-adoption validation prevents submitting new adoption requests for already adopted pets
+- [x] Frontend adoption modal and adoption requests dashboard view are updated to consume the new REST endpoints
+- [x] Automated tests verify adoption status transitions and validation preventing duplicate adoption
