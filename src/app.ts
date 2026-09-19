@@ -32,6 +32,10 @@ import {
   campaignsRouter as defaultCampaignsRouter,
   legacyCampaignsRouter as defaultLegacyCampaignsRouter,
 } from "./features/campaigns/campaigns.routes";
+import {
+  donationsRouter as defaultDonationsRouter,
+  legacyDonationsRouter as defaultLegacyDonationsRouter,
+} from "./features/donations/donations.routes";
 
 export interface AppOptions {
   authRouter?: express.Router;
@@ -44,6 +48,8 @@ export interface AppOptions {
   legacyAdoptionsRouter?: express.Router;
   campaignsRouter?: express.Router;
   legacyCampaignsRouter?: express.Router;
+  donationsRouter?: express.Router;
+  legacyDonationsRouter?: express.Router;
 }
 
 export function createApp(options?: AppOptions): Express {
@@ -82,6 +88,10 @@ export function createApp(options?: AppOptions): Express {
     options?.campaignsRouter || defaultCampaignsRouter;
   const legacyCampaignsRouter =
     options?.legacyCampaignsRouter || defaultLegacyCampaignsRouter;
+  const donationsRouter =
+    options?.donationsRouter || defaultDonationsRouter;
+  const legacyDonationsRouter =
+    options?.legacyDonationsRouter || defaultLegacyDonationsRouter;
 
   app.use("/api/v1/auth", authRouter);
   app.use("/jwt", authRouter);
@@ -101,9 +111,11 @@ export function createApp(options?: AppOptions): Express {
   app.use("/api/v1/adoptions", adoptionsRouter);
   app.use("/api/v1/adoption-requests", adoptionsRouter);
   app.use("/api/v1/campaigns", campaignsRouter);
+  app.use("/api/v1/donations", donationsRouter);
   app.use("/", legacyPetsRouter);
   app.use("/", legacyAdoptionsRouter);
   app.use("/", legacyCampaignsRouter);
+  app.use("/", legacyDonationsRouter);
 
   // Catch-all 404 for unhandled routes
   app.use((req: Request, _res: Response, next: NextFunction) => {
