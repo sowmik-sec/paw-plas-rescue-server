@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Server directory is renamed from `paw-plas-rescue-server` to `paw-pals-rescue-server`
-- [ ] TypeScript configuration supports Node 20+ with `tsx` development hot-reloading and `tsc` production compilation
-- [ ] Prisma schema is initialized with the MongoDB connector and models for all domain entities
-- [ ] Environment variables are validated on server startup with structured error reporting on invalid configuration
-- [ ] Express application bootstrap starts cleanly with CORS, JSON parsing, and centralized `AppError` global error handling middleware
+- [x] Server directory is renamed from `paw-plas-rescue-server` to `paw-pals-rescue-server`
+- [x] TypeScript configuration supports Node 20+ with `tsx` development hot-reloading and `tsc` production compilation
+- [x] Prisma schema is initialized with the MongoDB connector and models for all domain entities
+- [x] Environment variables are validated on server startup with structured error reporting on invalid configuration
+- [x] Express application bootstrap starts cleanly with CORS, JSON parsing, and centralized `AppError` global error handling middleware

@@ -1,0 +1,117 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+type OwnerInfo {
+  name  String
+  email String
+}
+
+type AdopterInfo {
+  name    String
+  email   String
+  address String?
+  phone   String?
+}
+
+type CreatorInfo {
+  name  String
+  email String
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  role      String   @default("user")
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Pet {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  pet_name        String
+  pet_category    String
+  pet_age         String
+  pet_location    String
+  pet_description String
+  pet_image       String
+  posted_date     String
+  owner_info      OwnerInfo
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("pets")
+}
+
+model AdoptionRequest {
+  id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  pet_id         String
+  status         String      @default("pending")
+  request_date   String
+  requester_info AdopterInfo
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("petRequests")
+}
+
+model DonationCampaign {
+  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
+  pet_name            String
+  max_donation        Float
+  last_date           String
+  short_description   String
+  long_description    String?
+  pet_image           String?
+  donation_created_at String?
+  creator_info        CreatorInfo
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@map("donationCampaigns")
+}
+
+model Donation {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  pet_id        String
+  donation      Float
+  email         String
+  date          String?
+  transactionId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("donations")
+}
+
+model SuccessStory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  image     String
+  story     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("successStories")
+}
+
+model PetCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  image       String
+  description String?
+  link        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("petCategories")
+}
