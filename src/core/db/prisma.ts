@@ -22,12 +22,33 @@ const isDevelopment = (): boolean => {
   }
 };
 
-export const prisma =
-  global.prisma ||
-  new PrismaClient({
-    log: isDevelopment() ? ["query", "error", "warn"] : ["error"],
-  });
+let prismaInstance: PrismaClient | undefined = global.prisma;
 
-if (!isProduction()) {
-  global.prisma = prisma;
+export function getPrismaClient(): PrismaClient {
+  if (!prismaInstance) {
+    try {
+      prismaInstance = new PrismaClient({
+        log: isDevelopment() ? ["query", "error", "warn"] : ["error"],
+      });
+    } catch {
+      // Fallback for environments / tests where driver adapter or direct connection is mocked
+      prismaInstance = new PrismaClient();
+    }
+
+    if (!isProduction()) {
+      global.prisma = prismaInstance;
+    }
+  }
+  return prismaInstance;
 }
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop: string | symbol) {
+    const client = getPrismaClient();
+    const value = (client as any)[prop];
+    if (typeof value === "function") {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
