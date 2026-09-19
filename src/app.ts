@@ -20,12 +20,18 @@ import {
   storiesRouter as defaultStoriesRouter,
   petCategoriesRouter as defaultPetCategoriesRouter,
 } from "./features/stories/stories.routes";
+import {
+  petsRouter as defaultPetsRouter,
+  legacyPetsRouter as defaultLegacyPetsRouter,
+} from "./features/pets/pets.routes";
 
 export interface AppOptions {
   authRouter?: express.Router;
   usersRouter?: express.Router;
   storiesRouter?: express.Router;
   petCategoriesRouter?: express.Router;
+  petsRouter?: express.Router;
+  legacyPetsRouter?: express.Router;
 }
 
 export function createApp(options?: AppOptions): Express {
@@ -53,6 +59,9 @@ export function createApp(options?: AppOptions): Express {
   const storiesRouter = options?.storiesRouter || defaultStoriesRouter;
   const petCategoriesRouter =
     options?.petCategoriesRouter || defaultPetCategoriesRouter;
+  const petsRouter = options?.petsRouter || defaultPetsRouter;
+  const legacyPetsRouter =
+    options?.legacyPetsRouter || defaultLegacyPetsRouter;
 
   app.use("/api/v1/auth", authRouter);
   app.use("/jwt", authRouter);
@@ -64,10 +73,12 @@ export function createApp(options?: AppOptions): Express {
   app.use("/stories", storiesRouter);
   app.use("/success-stories", storiesRouter);
 
-  // Mounted before the future /api/v1/pets router (issue 04) so the static
-  // "categories" segment wins over a parameterized "/:id" route
+  // Static /categories route mounted before /api/v1/pets so it takes precedence over /:id
   app.use("/api/v1/pets/categories", petCategoriesRouter);
   app.use("/pet-categories", petCategoriesRouter);
+
+  app.use("/api/v1/pets", petsRouter);
+  app.use("/", legacyPetsRouter);
 
   // Catch-all 404 for unhandled routes
   app.use((req: Request, _res: Response, next: NextFunction) => {
