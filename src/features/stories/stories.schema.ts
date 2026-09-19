@@ -7,3 +7,5 @@ export const mongoObjectIdSchema = z
 export const storyIdParamsSchema = z.object({
   id: mongoObjectIdSchema,
 });
+
+export type StoryIdParams = z.infer<typeof storyIdParamsSchema>;

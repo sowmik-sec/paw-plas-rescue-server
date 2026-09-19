@@ -4,9 +4,9 @@
 
 **Blocked by:** 01: Server Directory Rename, TypeScript Setup, and Core HTTP Seam
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Endpoint retrieves all pet categories with their display icons
-- [ ] Endpoints retrieve all success stories and specific stories by identifier
-- [ ] Frontend home page and story details views are updated to consume the new REST endpoints
-- [ ] Automated tests verify category retrieval and story lookup behavior
+- [x] Endpoint retrieves all pet categories with their display icons
+- [x] Endpoints retrieve all success stories and specific stories by identifier
+- [x] Frontend home page and story details views are updated to consume the new REST endpoints
+- [x] Automated tests verify category retrieval and story lookup behavior

@@ -17,16 +17,15 @@ try {
 import { authRouter as defaultAuthRouter } from "./features/auth/auth.routes";
 import { usersRouter as defaultUsersRouter } from "./features/users/users.routes";
 import {
-  createStoriesRouter,
-  createPetCategoriesRouter,
-} from "./modules/stories/stories.routes";
-import { StoryService, PetCategoryService } from "./modules/stories/stories.service";
+  storiesRouter as defaultStoriesRouter,
+  petCategoriesRouter as defaultPetCategoriesRouter,
+} from "./features/stories/stories.routes";
 
 export interface AppOptions {
   authRouter?: express.Router;
   usersRouter?: express.Router;
-  storyService?: StoryService;
-  petCategoryService?: PetCategoryService;
+  storiesRouter?: express.Router;
+  petCategoriesRouter?: express.Router;
 }
 
 export function createApp(options?: AppOptions): Express {
@@ -51,8 +50,9 @@ export function createApp(options?: AppOptions): Express {
   // Feature routers
   const authRouter = options?.authRouter || defaultAuthRouter;
   const usersRouter = options?.usersRouter || defaultUsersRouter;
-  const storiesRouter = createStoriesRouter(options?.storyService);
-  const petCategoriesRouter = createPetCategoriesRouter(options?.petCategoryService);
+  const storiesRouter = options?.storiesRouter || defaultStoriesRouter;
+  const petCategoriesRouter =
+    options?.petCategoriesRouter || defaultPetCategoriesRouter;
 
   app.use("/api/v1/auth", authRouter);
   app.use("/jwt", authRouter);
@@ -61,10 +61,13 @@ export function createApp(options?: AppOptions): Express {
   app.use("/users", usersRouter);
 
   app.use("/api/v1/stories", storiesRouter);
-  app.use("/successStories", storiesRouter);
+  app.use("/stories", storiesRouter);
+  app.use("/success-stories", storiesRouter);
 
+  // Mounted before the future /api/v1/pets router (issue 04) so the static
+  // "categories" segment wins over a parameterized "/:id" route
   app.use("/api/v1/pets/categories", petCategoriesRouter);
-  app.use("/petCategories", petCategoriesRouter);
+  app.use("/pet-categories", petCategoriesRouter);
 
   // Catch-all 404 for unhandled routes
   app.use((req: Request, _res: Response, next: NextFunction) => {
