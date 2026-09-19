@@ -40,11 +40,13 @@ export function calculateRemainingDays(
   now: Date = new Date()
 ): number {
   if (!lastDateStr) return 0;
-  const targetDate = new Date(lastDateStr);
+  let targetDate = new Date(lastDateStr);
   if (isNaN(targetDate.getTime())) {
     return 0;
   }
-  // Difference in milliseconds
+  if (/^\d{4}-\d{2}-\d{2}$/.test(lastDateStr.trim())) {
+    targetDate = new Date(`${lastDateStr.trim()}T23:59:59.999Z`);
+  }
   const diffMs = targetDate.getTime() - now.getTime();
   if (diffMs <= 0) {
     return 0;

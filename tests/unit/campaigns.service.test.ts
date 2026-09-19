@@ -207,6 +207,13 @@ describe("CampaignsService and Remaining Days Calculation", () => {
       expect(remaining).toBe(5);
     });
 
+    it("returns 1 for date-only format on the current deadline day before end of day", () => {
+      const baseNow = new Date("2026-09-19T14:30:00.000Z");
+      const deadlineDate = "2026-09-19";
+      const remaining = calculateRemainingDays(deadlineDate, baseNow);
+      expect(remaining).toBe(1);
+    });
+
     it("returns 0 for expired past dates", () => {
       const baseNow = new Date("2026-09-19T00:00:00.000Z");
       const pastDate = "2026-09-10T00:00:00.000Z";
